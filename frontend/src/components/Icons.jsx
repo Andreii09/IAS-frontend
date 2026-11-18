@@ -121,6 +121,14 @@ export const EyeIcon = makeIcon(
   </>,
 )
 
+export const EyeOffIcon = makeIcon(
+  <>
+    <path d="M3 3l18 18" />
+    <path d="M10.6 5.2A10.8 10.8 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3 3.6M6.2 6.3C3.5 8 2 12 2 12s3.6 7 10 7a10.7 10.7 0 0 0 4.1-.8" />
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+  </>,
+)
+
 export const CalendarIcon = makeIcon(
   <>
     <rect x="3" y="5" width="18" height="16" rx="2" />

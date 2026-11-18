@@ -70,6 +70,20 @@ export function roleLabel(role) {
   return { admin: 'Admin', editor: 'Editor', reader: 'Reader' }[role] || role || '—'
 }
 
+/** Landing screen for each role after authentication. */
+export function dashboardPathFor(role) {
+  if (role === 'admin') return '/admin'
+  if (role === 'editor') return '/manage'
+  return '/'
+}
+
+/** Role landing, unless a forced password change must happen first. */
+export function landingPathFor(user) {
+  if (!user) return '/login'
+  if (user.must_change_password) return '/change-password'
+  return dashboardPathFor(user.role)
+}
+
 export function isRestricted(visibility) {
   return ['registered', 'authenticated', 'private', 'members', 'residents'].includes(
     String(visibility || '').toLowerCase(),

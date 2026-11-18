@@ -1,6 +1,9 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/Layout.jsx'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
+import { useAuth } from './auth/AuthContext.jsx'
+import Spinner from './components/Spinner.jsx'
+import { landingPathFor } from './lib/format.js'
 
 import Feed from './pages/Feed.jsx'
 import Article from './pages/Article.jsx'
@@ -20,17 +23,58 @@ import Security from './pages/admin/Security.jsx'
 import Content from './pages/admin/Content.jsx'
 import NotFound from './pages/NotFound.jsx'
 
+function FullPageLoader() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-surface">
+      <Spinner label="Checking your session…" />
+    </div>
+  )
+}
+
+/** Sign-in screens stay guest-only; authenticated visitors go to their role home. */
+function GuestOnly({ children }) {
+  const { user, loading } = useAuth()
+
+  if (loading) return <FullPageLoader />
+  if (user) return <Navigate to={landingPathFor(user)} replace />
+  return children
+}
+
+/** Every internal route lives behind ProtectedRoute, so "/" is never a public dashboard. */
+function AppShell() {
+  return (
+    <ProtectedRoute>
+      <Layout />
+    </ProtectedRoute>
+  )
+}
+
+/** Root resolves to the right dashboard for the signed-in role. */
+function RoleHome() {
+  const { user, loading } = useAuth()
+
+  if (loading) return <FullPageLoader />
+  if (!user) return <Navigate to="/login" replace />
+
+  const target = landingPathFor(user)
+  // The reader dashboard is the feed at "/", so render it directly to avoid a loop.
+  return target === '/' ? <Feed /> : <Navigate to={target} replace />
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Feed />} />
+      {/* Authentication screens: first stop for every new visit. */}
+      <Route path="login" element={<GuestOnly><Login /></GuestOnly>} />
+      <Route path="register" element={<GuestOnly><Register /></GuestOnly>} />
+      <Route path="forgot-password" element={<GuestOnly><Forgot /></GuestOnly>} />
+      <Route path="reset-password/:token" element={<GuestOnly><ResetPassword /></GuestOnly>} />
+
+      {/* Protected application: no dashboard or internal page renders before login. */}
+      <Route element={<AppShell />}>
+        <Route index element={<RoleHome />} />
         <Route path="news/:id" element={<Article />} />
 
-        <Route path="login" element={<Login />} />
-        <Route path="register" element={<Register />} />
-        <Route path="forgot-password" element={<Forgot />} />
-        <Route path="reset-password/:token" element={<ResetPassword />} />
         <Route
           path="change-password"
           element={

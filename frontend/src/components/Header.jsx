@@ -23,7 +23,7 @@ export default function Header({ onMenuClick }) {
     try {
       await logout()
       toast.success('You have been signed out.')
-      navigate('/')
+      navigate('/login', { replace: true })
     } catch (error) {
       toast.error(getErrorMessage(error))
     } finally {

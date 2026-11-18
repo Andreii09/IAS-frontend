@@ -1,6 +1,6 @@
 # Bantay Cordova — implementation plan
 
-Status: source implementation complete and runtime-verified on this machine. Backend dependencies, database migration/seeding, `audit:verify`, all 16 PHPUnit tests, frontend install and production build all pass. The Laravel 12 backend lives at `C:\Users\Ricka\OneDrive\Desktop\backend`; the frontend and planning docs remain in `C:\Users\Ricka\OneDrive\Desktop\ias`.
+Status: source implementation complete and runtime-verified on this machine. Backend dependencies, database migration/seeding, `audit:verify`, all 38 PHPUnit tests (including chatbox CIA hardening, chat clearing and system-only scope enforcement), frontend install and production build all pass. The Laravel 12 backend lives at `C:\Users\Ricka\OneDrive\Desktop\backend`; the frontend and planning docs remain in `C:\Users\Ricka\OneDrive\Desktop\ias`.
 
 ## Guiding principles
 
@@ -20,8 +20,8 @@ Status: source implementation complete and runtime-verified on this machine. Bac
 | 4 | Audit logger, observers, `audit:verify` | `AuditLogger`, `AuditLog`, observers, `AuditVerifyCommand`, admin audit viewer + CSV export | Done |
 | 5 | Admin seeder and dashboard | `AdminSeeder`, `Admin/*` controllers, admin React pages | Done |
 | 6 | Sanctum tokens with abilities and manager | `TokenController`, token table, ability middleware on write routes | Done |
-| 7 | AI chatbox | `ChatContextBuilder`, `GeminiClient`, `ChatController`, `ChatMessage`, `docs/system-knowledge.md`, React `ChatBox` | Done |
-| 8 | Rate limits, lockout, health, testing | `AppServiceProvider` limiters, `ApiInfoController`, `phpunit.xml`, `tests/`, `README.md` verification checklist | Done — 16 tests pass (70 assertions) |
+| 7 | AI chatbox | `ChatContextBuilder`, `GeminiClient`, `ChatController`, `ChatMessage`, `docs/system-knowledge.md`, React `ChatBox` | Done — hardened with CIA controls (`ChatResponseGuard`, `OfflineHelp`, role-aware suggestions, safe rendering); see `CHAT_CIA_TRIAD.md` |
+| 8 | Rate limits, lockout, health, testing | `AppServiceProvider` limiters, `ApiInfoController`, `phpunit.xml`, `tests/`, `README.md` verification checklist | Done — 38 tests pass (177 assertions) |
 
 ## Verification checklist (completed on this machine)
 

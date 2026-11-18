@@ -1,15 +1,15 @@
 # Bantay Cordova
 
-Community news platform for Cordova residents. Public visitors browse published news; readers use a role-aware AI assistant; editors manage their own stories; administrators manage users, tokens, audit records, security and AI usage.
+Community news platform for Cordova residents. Public visitors browse published news; readers use a system-only Bantay Cordova support assistant; editors manage their own stories; administrators manage users, tokens, audit records, security and AI usage.
 
 - **Frontend:** React (Vite) + React Router + Tailwind CSS v4
 - **Backend:** Laravel 12 (PHP 8.2+, tested on PHP 8.5) REST API + Laravel Sanctum (SPA cookie auth + personal access tokens)
 - **Database:** MySQL 8 / MariaDB (XAMPP)
 - **AI:** Google Gemini via the Gemini API (free tier available), called **only** from Laravel
 
-> The repository contains the complete source tree, including a PHPUnit harness. Backend and frontend dependencies are installed, the database is migrated/seeded, `audit:verify` passes, all 16 PHPUnit tests pass, and the production frontend build succeeds.
+> The repository contains the complete source tree, including a PHPUnit harness. Backend and frontend dependencies are installed, the database is migrated/seeded, `audit:verify` passes, all 48 PHPUnit tests pass, and the production frontend build succeeds.
 
-See `SPEC_REVIEW.md` for specification corrections and `IMPLEMENTATION_PLAN.md` for build/verification status.
+See `SPEC_REVIEW.md` for specification corrections, `IMPLEMENTATION_PLAN.md` for build/verification status and `CHAT_CIA_TRIAD.md` for the AI chatbox's response improvements and CIA triad controls.
 
 ---
 
@@ -33,7 +33,11 @@ backend/
 │   ├── Models/                   User, News, NewsRevision, AuditLog, ChatMessage, Setting
 │   ├── Observers/                NewsObserver, UserObserver
 │   ├── Policies/                 NewsPolicy, UserPolicy
-│   ├── Services/                 AuditLogger, HtmlSanitizer, GeminiClient, ChatContextBuilder
+│   ├── Services/                 AuditLogger, HtmlSanitizer, GeminiClient, ChatContextBuilder,
+│   │                             SystemKnowledgeService, AssistantIntentDetector,
+│   │                             PublishedNewsRetrievalService, Advisory/Announcement/News/
+│   │                             IncidentRetrievalService, SystemDataService,
+│   │                             LiveDataAnswer, ChatResponseValidator, ChatScopeGuard
 │   └── Console/Commands/         audit:verify, news:publish-scheduled
 ├── database/migrations/
 ├── database/seeders/
@@ -166,9 +170,13 @@ Open `http://localhost:5173`.
   `news:publish-scheduled` is registered there, so add this cron entry for scheduled stories.
 - Back up the database nightly (`mysqldump`) and **test the restore**. XAMPP is for local development only.
 - Before storing real resident data: add 2FA for admins, email verification, and consider an IP allow-list for `/admin`.
-- Chat transcripts are logged for accountability. Disclose this in the UI (already done) and check local privacy rules before collecting resident data. PII is masked **before storage**, not before it is sent to the AI provider — account for that in your consent/privacy notice. Google's free tier may use prompts and responses to improve its products; do not send confidential resident data on the free tier.
+- Chat transcripts are logged for accountability. Disclose this in the UI (already done) and check local privacy rules before collecting resident data. PII is now masked **before both the provider call and storage**, but prompts still leave the server — account for that in your consent/privacy notice. Google's free tier may use prompts and responses to improve its products; do not send confidential resident data on the free tier.
 
 ---
+
+## Authentication and app entry
+
+The React app is authentication-first: `GET /` shows the full-screen **Sign in** page for guests. Internal routes (news, manage and admin screens) sit behind `ProtectedRoute`, so typing a dashboard URL manually cannot render it before login. After a successful Laravel login, users land on `/admin` (admin), `/manage` (editor) or `/` news feed (reader); a forced password change takes precedence. `Sign out` calls `POST /api/logout`, invalidates the Sanctum session and returns to the login page. Guest-only screens are login, register, forgot-password and reset-password.
 
 ## Roles
 
@@ -197,6 +205,7 @@ GET    /api/news, /api/news/{id}
 POST   /api/news, PUT /api/news/{id}, DELETE /api/news/{id}       (editor/admin)
 GET    /api/news/{id}/revisions, POST /api/news/{id}/restore
 POST   /api/chat                                                  (auth, 20/min, daily budget)
+DELETE /api/chat/session                                          (auth, clears one chat session's transcript/context)
 GET    /api/admin/{overview,users,tokens,audit,ai-usage,security,settings}
 GET    /api/admin/content/{revisions,revisions/raw,deleted}
 ```
@@ -205,7 +214,13 @@ Personal access tokens use least-privilege abilities (`news:read`, `news:write`)
 
 ## AI assistant
 
-`backend/docs/system-knowledge.md` is the factual knowledge base injected into the system prompt. **Update it whenever screens, routes, permissions or workflows change.** The backend adds the signed-in user's role and up to five matching published stories the user is allowed to see. Readers and editors never receive drafts, user emails, audit data or admin statistics. The assistant is read-only, admits when it does not know, and shows a friendly message when the provider is offline or the daily budget is spent. Per-user daily budgets come from config (reader 20k, editor 40k, admin 60k) with an admin override in `/admin/ai`.
+`backend/docs/system-knowledge.md` is the authorized knowledge base injected into the system prompt. **Update it whenever screens, routes, permissions or workflows change.** `SystemKnowledgeService` adds a short verified fact sheet; `AssistantIntentDetector` recognises short/informal questions; and Laravel retrieval services query only published, visible `news` rows. Advisories are `notice`/`public_safety` posts, announcements are `announcement` posts, and news is every published visible post. Drafts, future scheduled posts, soft-deleted rows and unauthorized records never reach the assistant.
+
+The assistant is read-only and data-aware: it returns real titles, categories, dates and summaries, uses exact empty/error replies, and validates provider output with `ChatResponseValidator` so invented records are replaced by a verified listing. Incident/report questions are answered honestly: the verified system has no incident, report-status, emergency or disaster module. PII is masked before the provider call and before storage; replies are length-capped and checked for leaked secrets or hidden instructions before display or storage. When the provider is offline, verified records are still returned deterministically and common how-to questions get a grounded local answer (`AI_OFFLINE_HELP`, default on). Per-user daily budgets come from config (reader 20k, editor 40k, admin 60k) with an admin override in `/admin/ai`.
+
+The assistant is a dedicated **Bantay Cordova System Assistant**, not a general chatbot. `ChatScopeGuard` verifies every question in Laravel **before** answer generation: prompt-injection attempts are rejected, clearly documented system topics (including short/informal wording) use a local fast path, and everything else is classified contextually with Gemini. Unrelated, unverifiable or injection questions receive the exact standard refusal about features, functionality, advisories, incident reporting or usage; they are stored as `scope-guard` exchanges and audited as `ai.chat.scope.refused`, with an "Out of scope" badge in the UI. The system currently has no incident-reporting, report-status, emergency or disaster module, so the assistant says so rather than inventing one. Controls are configurable via `AI_SCOPE_GUARD`, `AI_SCOPE_LOCAL_CHECK`, `AI_SCOPE_CLASSIFIER_MODEL` and `AI_SCOPE_MAX_TOKENS`.
+
+The full Confidentiality / Integrity / Availability mapping, changed files and verification steps are in `CHAT_CIA_TRIAD.md`.
 
 ## Useful commands
 
@@ -233,6 +248,7 @@ Coverage added:
 - Five-strike lockout and reader-only self-registration (`tests/Feature/AuthLockoutTest.php`).
 - Role/policy 403s, draft visibility, token abilities and plaintext non-storage (`tests/Feature/RolesAndPoliciesTest.php`, `tests/Feature/TokenAbilitiesTest.php`).
 - Reader chat-context isolation, friendly provider fallback and masked transcript storage (`tests/Feature/ChatContextTest.php`).
+- Intent detection, real advisory/announcement retrieval, exact empty/retrieval-error replies, publication/visibility filtering, provider fabrication fallback, verified multi-part answers and honest incident responses (`tests/Feature/AssistantIntelligenceTest.php`).
 - Revision/audit creation on story edits, HTML sanitizing and public health check (`tests/Feature/NewsWorkflowTest.php`, `tests/Feature/HealthTest.php`).
 
 These automated checks supplement, but do not replace, the manual runtime checklist in `IMPLEMENTATION_PLAN.md`.
