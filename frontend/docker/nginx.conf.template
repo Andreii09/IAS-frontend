@@ -27,12 +27,15 @@ server {
     location /api/ {
         proxy_pass ${API_ORIGIN};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_ssl_server_name on;
+        # Render routes onrender.com requests by the Host header. Send the
+        # backend's host upstream, and forward the browser's host separately.
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Port 443;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
@@ -40,12 +43,15 @@ server {
     location /sanctum/ {
         proxy_pass ${API_ORIGIN};
         proxy_http_version 1.1;
-        proxy_set_header Host $host;
+        proxy_ssl_server_name on;
+        # Render routes onrender.com requests by the Host header. Send the
+        # backend's host upstream, and forward the browser's host separately.
+        proxy_set_header Host $proxy_host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Proto https;
         proxy_set_header X-Forwarded-Host $host;
-        proxy_set_header X-Forwarded-Port $server_port;
+        proxy_set_header X-Forwarded-Port 443;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
     }
