@@ -40,6 +40,20 @@ npm run build
 npm run preview
 ```
 
+## Production deployment
+
+The production image uses Nginx instead of the Vite dev proxy, but keeps the
+same one-origin behaviour: `/api` and `/sanctum` are proxied to the Laravel
+backend. Set `API_ORIGIN` to the backend origin (no trailing slash).
+
+```powershell
+docker build -t bantay-cordova-frontend .
+docker run --rm -e API_ORIGIN=https://api.example.com -p 5173:80 bantay-cordova-frontend
+```
+
+A `render.yaml` blueprint and full instructions are in `DEPLOYMENT.md`.
+Deploy the backend first: `https://github.com/Andreii09/IAS-backend`.
+
 ## Project structure
 
 ```

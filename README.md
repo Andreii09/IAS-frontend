@@ -156,6 +156,21 @@ Open `http://localhost:5173`.
 
 ---
 
+## 4. Cloud deployment
+
+Frontend and backend are separate GitHub repositories:
+
+- Backend API: `https://github.com/Andreii09/IAS-backend`
+- Frontend + docs: `https://github.com/Andreii09/IAS-frontend`
+
+Each repo contains a production `Dockerfile`, a Render `render.yaml` blueprint and a `DEPLOYMENT.md` guide. Deploy the **backend first**, then set the frontend's `API_ORIGIN` to the backend URL. The frontend Nginx proxies `/api` and `/sanctum` to that URL, so the browser still sees a single origin and Sanctum cookies work without CORS changes.
+
+The backend image runs PHP-FPM, Nginx, the queue worker and the scheduler under Supervisor. It needs an external MySQL/PostgreSQL URL (`DATABASE_URL`), a Gemini key and the **frontend hostname** in `SESSION_DOMAIN` / `SANCTUM_STATEFUL_DOMAINS`. Set `RUN_MIGRATIONS=true` for the first deploy and `RUN_SEED=true` once to create the admin account; then turn seeding off.
+
+Full steps: `backend/DEPLOYMENT.md` and `frontend/DEPLOYMENT.md`.
+
+---
+
 ## Optional production-hardening steps
 
 - Set `APP_ENV=production`, `APP_DEBUG=false`, force HTTPS, and use real `Secure` cookies (`SESSION_SECURE_COOKIE=true`).
