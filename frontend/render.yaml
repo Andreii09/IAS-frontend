@@ -3,7 +3,8 @@ services:
     name: bantay-cordova-frontend
     runtime: docker
     plan: free
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
     healthCheckPath: /
     envVars:
       # Public origin of the backend service, e.g. https://bantay-cordova-api.onrender.com

@@ -16,8 +16,8 @@ Backend deployment files are in the separate repo: `https://github.com/Andreii09
 
 1. Deploy the backend first and copy its public URL (e.g. `https://bantay-cordova-api.onrender.com`).
 2. Push this repo to GitHub.
-3. In Render, choose **Blueprint → New Blueprint Instance** and select this repository.
-4. Set `API_ORIGIN` to the backend URL **without a trailing slash**.
+3. In Render, choose **Blueprint → New Blueprint Instance** and select this repository. Set **Blueprint Path** to `frontend/render.yaml` — the frontend files are in the `frontend/` subfolder, not the repo root.
+4. Set `API_ORIGIN` to the backend URL **without a trailing slash**. The blueprint already points `dockerfilePath` and `dockerContext` at `./frontend`.
 5. Deploy, then open the frontend URL. Check `/api/health` through the frontend proxy to confirm the connection.
 
 ## Required backend settings
